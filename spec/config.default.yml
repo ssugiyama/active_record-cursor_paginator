@@ -1,0 +1,12 @@
+postgresql:
+  adapter: postgresql
+  host: 127.0.0.1
+  database: cursor_test
+  username: postgres
+  password:
+mysql:
+  adapter: mysql2
+  host: 127.0.0.1
+  database: cursor_test
+  username: root
+  password:
