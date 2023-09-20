@@ -6,6 +6,11 @@ Additional features are:
 - receives a relation with orders, and it is unnecessary to specify orders toA this library separately
 - supports bidirectional pagination.
 
+## Supported environment
+
+- ActiveRecord
+- mysql or Postgresql
+
 ## Installation
 
 Add the fllowing line to your `Gemfile` and execute `bundle install`
@@ -34,6 +39,15 @@ page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: 
 - `page.total`: Integer - total count of relation
 - `page.next_page?`:  Boolean - whether having the next page forward or not
 - `page.previous_page?`:  Boolean - whether having the next page backward or not
+
+## Development
+
+### Run test
+
+```shell
+ADAPTER=mysql bundle exec rspec
+ADAPTER=postgresql bundle exec rspec
+```
 
 ## Contributing
 
