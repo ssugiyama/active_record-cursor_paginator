@@ -13,10 +13,10 @@ Additional features are:
 
 ## Installation
 
-Add the fllowing line to your `Gemfile` and execute `bundle install`
+Add the following line to your `Gemfile` and execute `bundle install`
 
 ```
-gem 'active_record-cursor_paginator', git: 'https://github.com/ssugiyama/active_record-cursor_paginator'
+gem 'active_record-cursor_paginator'
 ```
 
 ## Usage
@@ -49,9 +49,15 @@ ADAPTER=mysql bundle exec rspec
 ADAPTER=postgresql bundle exec rspec
 ```
 
+## ToDo
+
+This library automatically appends `id` column to sorting and filtering columns, if it is not the last one.
+This feature may cause unnecessary performance deterioration.
+So, we plan this feature can be off.
+
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/ssugiyama/activerecord-cursor_paginator. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/ssugiyama/activerecord-cursor_paginator/blob/main/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/ssugiyama/active_record-cursor_paginator. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/ssugiyama/active_record-cursor_paginator/blob/main/CODE_OF_CONDUCT.md).
 
 ## License
 
@@ -59,4 +65,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the Activerecord::CursorPagination project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/ssugiyama/activerecord-cursor_paginator/blob/main/CODE_OF_CONDUCT.md).
+Everyone interacting in the Activerecord::CursorPagination project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/ssugiyama/active_record-cursor_paginator/blob/main/CODE_OF_CONDUCT.md).
