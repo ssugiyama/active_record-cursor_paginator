@@ -40,6 +40,16 @@ page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: 
 - `page.next_page?`:  Boolean - whether having the next page forward or not
 - `page.previous_page?`:  Boolean - whether having the next page backward or not
 
+## Caveat
+
+This library does not support the following order expressions
+
+```ruby
+Post.order(Arel::Nodes::NamedFunction.new('abs', [Post.arel_table[:display_index]])) # order by arel function
+Post.order('abs(display_index)') # order by funtion
+Post.order('abs(display_index) asc') # order by function and direction
+```
+
 ## Development
 
 ### Run test
