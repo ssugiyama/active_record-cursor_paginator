@@ -3,7 +3,7 @@
 This library is an implementation of cursor pagination for ActiveRecord relations based on "https://github.com/xing/rails_cursor_pagination.
 
 Additional features are:
-- receives a relation with orders, and it is unnecessary to specify orders toA this library separately
+- receives a relation with orders, and it is unnecessary to specify orders to this library separately
 - supports bidirectional pagination.
 
 ## Supported environment
@@ -26,12 +26,12 @@ relation = Post.order(...)
 page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10)
 ```
 
-### parameters of CursorPaginator
+### Parameters of CursorPaginator
 - cursor: String - cursor to paginate
 - per_page: Integer - record count per page (default to 10)
 - direction: Symbol - direction to paginate. `:forward` (default) or `:backward`
 
-### response of CursorPaginator
+### Response of CursorPaginator
 
 - `page.records`: Array - records splitted per page (Notice: not ActiveRecord::Relation but Array)
 - `page.start_cursor`: String - cursor of the first record. used for the backward paginate call.
@@ -40,7 +40,15 @@ page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: 
 - `page.next_page?`:  Boolean - whether having the next page forward or not
 - `page.previous_page?`:  Boolean - whether having the next page backward or not
 
-## Caveat
+## Notice
+
+You need to specify `ActiveSupport::JSON::Encoding.time_precision` to use time columns as order keys. It must be equals to the maximum precision of your order keys. Default precision of time columns in Rails is 6. So, please specify as follows in your initializers:
+
+```
+ActiveSupport::JSON::Encoding.time_precision = 6
+```
+
+## Limitation
 
 This library does not support the following order expressions
 
