@@ -8,7 +8,7 @@ module TestConfig
 
     def adapters
       @adapters ||=
-        config.keys.reject {|key| skipped_adapters.any? {|adapter| key.to_s.include?(adapter) } }
+        config.keys.reject { |key| skipped_adapters.any? { |adapter| key.to_s.include?(adapter) } }
     end
 
     # #current_adapter and #current_adapter= use an environment variable because

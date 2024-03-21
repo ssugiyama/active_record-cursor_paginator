@@ -44,8 +44,12 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.pluck(:display_index)).to eq [post_count - (i * 2) - 1, post_count - (i * 2) - 2]
           next_cursor = page.end_cursor
           prev_cursor = page.start_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'display_index' => records.last.display_index }, { 'id' => records.last.id }]
-          expect(JSON.parse(Base64.strict_decode64(prev_cursor))).to eq [{ 'display_index' => records.first.display_index }, { 'id' => records.first.id }]
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [
+            { 'display_index' => records.last.display_index }, { 'id' => records.last.id }
+          ]
+          expect(JSON.parse(Base64.strict_decode64(prev_cursor))).to eq [
+            { 'display_index' => records.first.display_index }, { 'id' => records.first.id }
+          ]
           expect(page.paginate_forward?).to eq true
           expect(page.next_page?).to eq(i != (post_count / 2) - 1)
           expect(page.previous_page?).to eq(i != 0)
@@ -61,8 +65,12 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.pluck(:display_index)).to eq [post_count - (i * 2) - 1, post_count - (i * 2) - 2]
           prev_cursor = page.end_cursor
           next_cursor = page.start_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'display_index' => records.first.display_index }, { 'id' => records.first.id }]
-          expect(JSON.parse(Base64.strict_decode64(prev_cursor))).to eq [{ 'display_index' => records.last.display_index }, { 'id' => records.last.id }]
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [
+            { 'display_index' => records.first.display_index }, { 'id' => records.first.id }
+          ]
+          expect(JSON.parse(Base64.strict_decode64(prev_cursor))).to eq [
+            { 'display_index' => records.last.display_index }, { 'id' => records.last.id }
+          ]
           expect(page.paginate_forward?).to eq false
           expect(page.next_page?).to eq(i != (post_count / 2) - 1)
           expect(page.previous_page?).to eq(i != 0)
@@ -73,8 +81,8 @@ RSpec.describe ActiveRecord::CursorPaginator do
         let(:relation) { Post.order(display_index: :desc) }
 
         it 'raises error' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: 'invalid').records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidCursorError)
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: 'invalid').records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidCursorError)
         end
       end
 
@@ -83,8 +91,8 @@ RSpec.describe ActiveRecord::CursorPaginator do
         let(:cursor) { Base64.strict_encode64([{ display_index: 1 }].to_json) }
 
         it 'raises error' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: cursor).records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidCursorError)
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: cursor).records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidCursorError)
         end
       end
 
@@ -93,8 +101,8 @@ RSpec.describe ActiveRecord::CursorPaginator do
         let(:cursor) { Base64.strict_encode64([{ foo: 'bar' }, { id: 1 }].to_json) }
 
         it 'raises error' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: cursor).records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidCursorError)
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: cursor).records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidCursorError)
         end
       end
 
@@ -102,8 +110,8 @@ RSpec.describe ActiveRecord::CursorPaginator do
         let(:relation) { Post.order(Arel.sql('case display_index when 1 then 2 else 1 end')) }
 
         it 'raises error' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end
       end
 
@@ -118,7 +126,9 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.length).to eq 2
           expect(records.pluck(:display_index)).to eq [0, 1]
           next_cursor = page.end_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'display_index' => records.last.display_index }, { 'id' => records.last.id }]
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [
+            { 'display_index' => records.last.display_index }, { 'id' => records.last.id }
+          ]
         end
       end
 
@@ -133,7 +143,9 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.length).to eq 2
           expect(records.pluck(:display_index)).to eq [0, 1]
           next_cursor = page.end_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'display_index' => records.last.display_index }, { 'id' => records.last.id }]
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [
+            { 'display_index' => records.last.display_index }, { 'id' => records.last.id }
+          ]
         end
       end
 
@@ -148,7 +160,9 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.length).to eq 2
           expect(records.pluck(:display_index)).to eq [0, 1]
           next_cursor = page.end_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'display_index' => records.last.display_index }, { 'id' => records.last.id }]
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [
+            { 'display_index' => records.last.display_index }, { 'id' => records.last.id }
+          ]
         end
       end
 
@@ -163,34 +177,36 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.length).to eq 2
           expect(records.pluck(:display_index)).to eq [0, 1]
           next_cursor = page.end_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'display_index' => records.last.display_index }, { 'id' => records.last.id }]
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [
+            { 'display_index' => records.last.display_index }, { 'id' => records.last.id }
+          ]
         end
       end
 
       context 'order with arel function' do
         let(:relation) { Post.order(Arel::Nodes::NamedFunction.new('abs', [Post.arel_table[:display_index]])) }
 
-        it 'returns proper page' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
+        it 'raises error' do
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end
       end
 
       context 'order with string with function' do
         let(:relation) { Post.order('abs(display_index)') }
 
-        it 'returns proper page' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
+        it 'raises error' do
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end
       end
 
       context 'order with string with function and order' do
         let(:relation) { Post.order('abs(display_index) asc') }
 
-        it 'returns proper page' do
-          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
-            to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
+        it 'raises error' do
+          expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }
+            .to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end
       end
 
