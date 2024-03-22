@@ -86,7 +86,7 @@ jobs:
         uses: SonicGarden/rspec-report-action@v3
         with:
           token: "${{ github.token }}"
-          json-path: tmp/rspec_postgrs_results.json
+          json-path: tmp/rspec_postgres_results.json
         if: always()
       - name: RSpec Report(mysql)
         uses: SonicGarden/rspec-report-action@v3
