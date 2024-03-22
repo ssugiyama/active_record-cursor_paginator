@@ -170,7 +170,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
       context 'order with arel function' do
         let(:relation) { Post.order(Arel::Nodes::NamedFunction.new('abs', [Post.arel_table[:display_index]])) }
 
-        it 'returns proper page' do
+        it 'raises error' do
           expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
             to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end
@@ -179,7 +179,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
       context 'order with string with function' do
         let(:relation) { Post.order('abs(display_index)') }
 
-        it 'returns proper page' do
+        it 'raises error' do
           expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
             to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end
@@ -188,7 +188,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
       context 'order with string with function and order' do
         let(:relation) { Post.order('abs(display_index) asc') }
 
-        it 'returns proper page' do
+        it 'raises error' do
           expect { ActiveRecord::CursorPaginator.new(relation, per_page: 2).records }.
             to raise_error(ActiveRecord::CursorPaginator::InvalidOrderError)
         end

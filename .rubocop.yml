@@ -8,6 +8,7 @@ inherit_mode:
 
 # 自動生成されるものはチェック対象から除外する
 AllCops:
+  TargetRubyVersion: 2.7
   SuggestExtensions: false
   NewCops: enable
   Exclude:
@@ -17,17 +18,6 @@ AllCops:
     - "vendor/**/*"
     - "bin/*"
     - "Gemfile*"
-    - "db/schema.rb"
-    - "db/seeds.rb"
-    - 'db/migrate/*_init_schema.rb' # squasher generated
-    - "frontend/**/*"
-    - 'spec/fixtures/**/*'
-    - 'terraform/**/*'
-    - "app/lib/qwan_exception.rb"
-    - "app/controllers/test_data_controller.rb"
-    - "app/apis/api/v1/concerns/errors.rb"
-    - 'docker/**/*'
-    - '**/node_modules/**/*'
 
 #################### Layout ################################
 
@@ -36,13 +26,6 @@ AllCops:
 # のイメージ
 Layout/LineLength:
   Max: 160
-  Exclude:
-    - "db/migrate/*.rb"
-    - "app/lib/ngword.rb"
-    - "app/exceptions/qwan_exception/shop_remove_location_despite_has_ticket.rb"
-    - "spec/apis/api/v1/contact_spec.rb"
-    - "spec/ledger/report/tenant_transactions_spec.rb"
-    - "spec/ledger/report/transactions_spec.rb"
 
 # ガード句と本質を分けるのは良いコードスタイルなので有効化
 Layout/EmptyLineAfterGuardClause:
@@ -171,43 +154,22 @@ Metrics/BlockLength:
     - "**/*.rake"
     - "spec/**/*.rb"
     - "Gemfile"
-    - "Guardfile"
-    - "config/environments/*.rb"
-    - "config/routes.rb"
-    - "config/routes/**/*.rb"
-    - "*.gemspec"
-    - "app/apis/**/*.rb"
-    - 'app/models/concerns/firebase_auth_concern.rb'
-    - 'app/models/concerns/region_location_report_concern.rb'
-    - 'db/migrate/*_init_schema.rb' # squasher generated
 
 # 6 は強すぎるので緩める
 Metrics/CyclomaticComplexity:
   Max: 11
-  Exclude:
-    - "app/models/mission_master.rb"
 
 Metrics/ClassLength:
   Max: 500
   CountAsOne: ['array', 'hash', 'heredoc']
-  Exclude:
-    - 'db/migrate/*_init_schema.rb' # squasher generated
 
 # 20 行超えるのは migration ファイル以外滅多に無い
 Metrics/MethodLength:
   Max: 30
-  Exclude:
-    - "db/migrate/*.rb"
-    - "app/models/**/search.rb"
-    - "app/controllers/test_data_controller.rb"
-    - "app/models/mission_master.rb"
-    - "app/models/region_player/status.rb"
 
 # 分岐の数。ガード句を多用しているとデフォルト 7 だと厳しい
 Metrics/PerceivedComplexity:
   Max: 10
-  Exclude:
-    - "app/models/mission_master.rb"
 
 Metrics/ParameterLists:
   Max: 8

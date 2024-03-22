@@ -1,0 +1,96 @@
+name: rspec
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  rspec:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-bookworm
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        env:
+          POSTGRES_HOST_AUTH_METHOD: 'trust'
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+      mysql:
+        image: mysql:8.0-bookworm
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        ports:
+          # Maps tcp port 3306 on service container to the host
+          - 3306:3306
+
+    env:
+      # os
+      TZ: Asia/Tokyo
+      LANG: ja_JP.UTF-8
+      LC_ALL: C.UTF-8
+      LANGUAGE: ja_JP.UTF-8
+      # rails
+      RAILS_ENV: test
+      RACK_ENV: test
+      # `MAKE="make --jobs $(nproc)"` is from
+      # https://build.betterup.com/one-weird-trick-that-will-speed-up-your-bundle-install/
+      # Only works for MRI
+      #
+      # Using 4 since https://github.com/ruby/setup-ruby use 4
+      MAKE: "make --jobs 4"
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - run: |
+          git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
+
+      # If your project only specifies its Ruby version in its
+      # Gemfile, you'll need to specify a version for the
+      # action to use. See documentation for the
+      # ruby/setup-ruby action for details.
+      - name: setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          # Run `bundle install` with cache when `true`
+          bundler-cache: true
+      - name: cache bundle gems
+        uses: actions/cache@v3
+        env:
+          cache-name: bundle-gems
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gem-${{ env.cache-name }}-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gem-${{ env.cache-name }}-
+            ${{ runner.os }}-gem-
+            ${{ runner.os }}-
+      - name: prepare
+        run: |
+          bundle config set --local path 'vendor/bundle'
+          bundle install --jobs=4 --retry=3
+      - name: Run Rspec
+        run: |
+          ADAPTER=postgresql bundle exec rspec --format p --format j -o tmp/rspec_postgres_results.json
+          ADAPTER=mysql bundle exec rspec --format p --format j -o tmp/rspec_mysql_results.json
+        env:
+          BUNDLE_PATH: "vendor/bundle"
+      - name: RSpec Report(postgrs)
+        uses: SonicGarden/rspec-report-action@v3
+        with:
+          token: "${{ github.token }}"
+          json-path: tmp/rspec_postgres_results.json
+        if: always()
+      - name: RSpec Report(mysql)
+        uses: SonicGarden/rspec-report-action@v3
+        with:
+          token: "${{ github.token }}"
+          json-path: tmp/rspec_mysql_results.json
+        if: always()

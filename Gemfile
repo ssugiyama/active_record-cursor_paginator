@@ -16,3 +16,8 @@ group :test do
   gem 'pg', '>= 1.2', '< 2.0'
   gem 'mysql2', '~> 0.5'
 end
+
+group :pronto, :development do
+  gem 'pronto', '~> 0.11.2'
+  gem 'pronto-rubocop', '~> 0.11.5'
+end
