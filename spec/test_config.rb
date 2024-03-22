@@ -30,8 +30,9 @@ module TestConfig
     private :skipped_adapters
 
     def config
-      @config ||= YAML.safe_load(File.read(config_path))
+      @config ||= YAML.safe_load(ERB.new(File.read(config_path)).result)
     end
+
     private :config
 
     def config_path
