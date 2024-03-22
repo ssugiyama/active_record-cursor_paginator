@@ -32,9 +32,6 @@ jobs:
       # rails
       RAILS_ENV: test
       RACK_ENV: test
-      # db
-      POSTGRESQL_HOST: postgres
-      MYSQL_HOST: mysql
       # `MAKE="make --jobs $(nproc)"` is from
       # https://build.betterup.com/one-weird-trick-that-will-speed-up-your-bundle-install/
       # Only works for MRI
