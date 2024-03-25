@@ -28,7 +28,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
     let(:epsilon) { BigDecimal('0.000001') }
     before do
       (0...post_count).each do |i|
-        Post.create(display_index: i, weight: i % 2, posted_at: now - i * epsilon)
+        Post.create(display_index: i, weight: i % 2, posted_at: now - (i * epsilon))
       end
     end
 
@@ -249,7 +249,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
           records = page.records
           expect(records).to be_a Array
           expect(records.length).to eq 2
-          expect(records.map {|r| BigDecimal(r.posted_at.to_f.to_s).round(6) }).to eq [bd_now - epsilon * 2, bd_now - epsilon * 3]
+          expect(records.map {|r| BigDecimal(r.posted_at.to_f.to_s).round(6) }).to eq [bd_now - (epsilon * 2), bd_now - (epsilon * 3)]
           next_cursor = page.end_cursor
           expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'posted_at' => records.last.posted_at.iso8601(6) }, { 'id' => records.last.id }]
           # page 3
@@ -257,7 +257,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
           records = page.records
           expect(records).to be_a Array
           expect(records.length).to eq 2
-          expect(records.map {|r| BigDecimal(r.posted_at.to_f.to_s).round(6) }).to eq [bd_now - epsilon * 4, bd_now - epsilon * 5]
+          expect(records.map {|r| BigDecimal(r.posted_at.to_f.to_s).round(6) }).to eq [bd_now - (epsilon * 4), bd_now - (epsilon * 5)]
           next_cursor = page.end_cursor
           expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'posted_at' => records.last.posted_at.iso8601(6) }, { 'id' => records.last.id }]
         end
