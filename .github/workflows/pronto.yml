@@ -30,6 +30,8 @@ jobs:
       - run: |
           git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
 
+      - name: install git
+        run: apt intsall -y git
       # If your project only specifies its Ruby version in its
       # Gemfile, you'll need to specify a version for the
       # action to use. See documentation for the
@@ -39,8 +41,6 @@ jobs:
         with:
           # Run `bundle install` with cache when `true`
           bundler-cache: true
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Run Pronto
         run: bundle exec pronto run -f github_status github_pr_review -c origin/${{ github.base_ref }}
         env:
