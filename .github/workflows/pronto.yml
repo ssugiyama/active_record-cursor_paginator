@@ -39,7 +39,8 @@ jobs:
         with:
           # Run `bundle install` with cache when `true`
           bundler-cache: true
-
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Run Pronto
         run: bundle exec pronto run -f github_status github_pr_review -c origin/${{ github.base_ref }}
         env:
