@@ -1,4 +1,4 @@
-name: rspec
+name: check pull_request
 on: pull_request
 
 permissions:
@@ -94,3 +94,9 @@ jobs:
           token: "${{ github.token }}"
           json-path: tmp/rspec_mysql_results.json
         if: always()
+      - name: run rubocop
+        uses: reviewdog/action-rubocop@v2
+        with:
+          reporter: github-pr-check github-pr-review
+          skip_install: true
+          use_bundler: true
