@@ -30,8 +30,8 @@ jobs:
       - run: |
           git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*
 
-      # - name: Setup tmate session
-      #   uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       # If your project only specifies its Ruby version in its
       # Gemfile, you'll need to specify a version for the
       # action to use. See documentation for the
