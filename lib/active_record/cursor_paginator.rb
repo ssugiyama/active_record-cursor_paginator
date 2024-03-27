@@ -49,7 +49,7 @@ module ActiveRecord
           { o.name => :asc }
         when Arel::Nodes::Ascending, # .order(id: :asc), .order(:id)
              Arel::Nodes::Descending # .order(id: :desc)
-          key = o.expr.is_a?(Arel::Attributes::Attribute) ? o.expr.name : o.expr.gsub(/^\"/, '').gsub(/\"$/, '')
+          key = o.expr.is_a?(Arel::Attributes::Attribute) ? o.expr.name : trim_quote(o.expr)
           dir = o.is_a?(Arel::Nodes::Descending) ? :desc : :asc
           { key => dir }
         when String # .order('id desc')
@@ -190,7 +190,7 @@ module ActiveRecord
         relation = @relation
 
         @fields.each do |field|
-          field = field.keys.first
+          field = trim_quote(field.keys.first)
           relation = relation.select(field) unless @relation.select_values.include?(field) || @aliases.keys.include?(field)
         end
 
@@ -263,6 +263,10 @@ module ActiveRecord
         col, val = current_field
         col = @aliases[col] if @aliases.has_key? col
         relation.where("#{col} #{op} ?", val)
+      end
+
+      def trim_quote(field)
+        field.gsub(/^[`\"]/, '').gsub(/[`\"]$/, '')
       end
   end
 end
