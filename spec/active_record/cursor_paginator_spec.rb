@@ -276,11 +276,11 @@ RSpec.describe ActiveRecord::CursorPaginator do
       end
 
       context 'order by relation columns' do
-        let(:relation) { Post.select("posts.*, authors.name as author_name").joins(:author).order('author_name desc') }
+        let(:relation) { Post.select('posts.*, authors.name as author_name').joins(:author).order('author_name desc') }
 
         it 'returns proper page' do
           # page 1
-          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, aliases: {author_name: 'authors.name'})
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, aliases: { author_name: 'authors.name' })
           expect(page.total).to eq post_count
           records = page.records
           expect(records).to be_a Array
@@ -289,7 +289,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
           next_cursor = page.end_cursor
           expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
           # page 2
-          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, aliases: {author_name: 'authors.name'})
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, aliases: { author_name: 'authors.name' })
           records = page.records
           expect(records).to be_a Array
           expect(records.length).to eq 2
@@ -300,11 +300,11 @@ RSpec.describe ActiveRecord::CursorPaginator do
       end
 
       context 'order by relation columns' do
-        let(:relation) { Post.select("posts.*, authors.name as author_name").joins(:author).order(author_name: :desc) }
+        let(:relation) { Post.select('posts.*, authors.name as author_name').joins(:author).order(author_name: :desc) }
 
         it 'returns proper page' do
           # page 1
-          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, aliases: {author_name: 'authors.name'})
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, aliases: { author_name: 'authors.name' })
           expect(page.total).to eq post_count
           records = page.records
           expect(records).to be_a Array
@@ -313,7 +313,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
           next_cursor = page.end_cursor
           expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
           # page 2
-          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, aliases: {author_name: 'authors.name'})
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, aliases: { author_name: 'authors.name' })
           records = page.records
           expect(records).to be_a Array
           expect(records.length).to eq 2
