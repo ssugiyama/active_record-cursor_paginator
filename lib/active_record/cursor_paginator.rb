@@ -33,7 +33,7 @@ module ActiveRecord
       @relation = relation.reorder(@fields)
       @cursor = cursor
       @page_size = per_page
-      aliases[:id] ||= "\"#{relation.table_name}\".\"id\""
+      aliases[:id] ||= "#{relation.table_name}.id"
       @aliases = aliases.with_indifferent_access
       @memos = {}
     end
