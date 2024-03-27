@@ -20,9 +20,11 @@ module ActiveRecord
     #   Number of records to return.
     # @param cursor [String, nil]
     #   Cursor to paginate
-    # @param order [Array, Hash, Symbol, nil]
-    #   Column to order by. If none is provided, will default to ID column.
-    def initialize(relation, per_page: nil, cursor: nil, direction: DIRECTION_FORWARD)
+    # @param direction [Symbol]
+    #   :forward or :backward
+    # @param aliases [Hash]
+    #   aliases for relation's columns
+    def initialize(relation, per_page: nil, cursor: nil, direction: DIRECTION_FORWARD, aliases: {})
       @is_forward_pagination = direction == DIRECTION_FORWARD
       relation = relation.order(:id) if relation.order_values.empty?
       relation = relation.reverse_order unless @is_forward_pagination
@@ -31,7 +33,8 @@ module ActiveRecord
       @relation = relation.reorder(@fields)
       @cursor = cursor
       @page_size = per_page
-
+      aliases[:id] ||= "\"#{relation.table_name}\".\"id\""
+      @aliases = aliases.with_indifferent_access
       @memos = {}
     end
 
@@ -44,10 +47,11 @@ module ActiveRecord
         case o
         when Arel::Attribute # .order(arel_table[:id])
           { o.name => :asc }
-        when Arel::Nodes::Ascending # .order(id: :asc), .order(:id)
-          { o.expr.name => :asc }
-        when Arel::Nodes::Descending # .order(id: :desc)
-          { o.expr.name => :desc }
+        when Arel::Nodes::Ascending, # .order(id: :asc), .order(:id)
+             Arel::Nodes::Descending # .order(id: :desc)
+          key = o.expr.is_a?(Arel::Attributes::Attribute) ? o.expr.name : o.expr.gsub(/^\"/, '').gsub(/\"$/, '')
+          dir = o.is_a?(Arel::Nodes::Descending) ? :desc : :asc
+          { key => dir }
         when String # .order('id desc')
           o.split(',').map! do |s|
             s.strip!
@@ -187,7 +191,7 @@ module ActiveRecord
 
         @fields.each do |field|
           field = field.keys.first
-          relation = relation.select(field) unless @relation.select_values.include?(field)
+          relation = relation.select(field) unless @relation.select_values.include?(field) || @aliases.keys.include?(field)
         end
 
         relation
@@ -210,6 +214,7 @@ module ActiveRecord
           next sorted_relation if @cursor.blank?
 
           cursor = decoded_cursor
+
           unless cursor.length == @fields.length && cursor.map {|field| field.keys.first } == @fields.map {|field| field.keys.first }
             raise InvalidCursorError, 'The given cursor is mismatched with current query'
           end
@@ -218,8 +223,7 @@ module ActiveRecord
           relation = nil
           cursor.zip(@fields).each do |cursor_field, field|
             direction = field.values.first
-            # range では 〜より大きいということが表現できないのでarel_tableを使う
-            op = (direction == :asc) ? :gt : :lt
+            op = (direction == :asc) ? '>' : '<'
             current_field = [field.keys.first, cursor_field.values.first]
             new_relation = build_filter_query(sorted_relation, op, current_field, prev_fields)
             relation = relation.nil? ? new_relation : relation.or(new_relation)
@@ -251,11 +255,14 @@ module ActiveRecord
       # @return [ActiveRecord::Relation]
       def build_filter_query(sorted_relation, op, current_field, prev_fields)
         relation = sorted_relation
+
         prev_fields.each do |col, val|
-          relation = relation.where(relation.arel_table[col].send(:eq, val))
+          col = @aliases[col] if @aliases.has_key? col
+          relation = relation.where("#{col} = ?", val)
         end
         col, val = current_field
-        relation.where(relation.arel_table[col].send(op, val))
+        col = @aliases[col] if @aliases.has_key? col
+        relation.where("#{col} #{op} ?", val)
       end
   end
 end

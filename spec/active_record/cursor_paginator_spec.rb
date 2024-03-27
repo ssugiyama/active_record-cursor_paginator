@@ -13,8 +13,15 @@ RSpec.describe ActiveRecord::CursorPaginator do
   before do
     ActiveSupport::JSON::Encoding.time_precision = 6
     Temping.teardown
-    Temping.create(:post) do
+    Temping.create(:author) do
       with_columns do |t|
+        t.string :name
+      end
+    end
+    Temping.create(:post) do
+      belongs_to :author
+      with_columns do |t|
+        t.integer :author_id
         t.integer :display_index
         t.integer :weight
         t.datetime :posted_at
@@ -23,12 +30,17 @@ RSpec.describe ActiveRecord::CursorPaginator do
   end
 
   context 'paginator' do
+    let!(:author_count) { 2 }
     let!(:post_count) { 6 }
     let(:now) { Time.now.floor }
     let(:epsilon) { BigDecimal('0.000001') }
     before do
+      authors = []
+      (0...author_count).each do |i|
+        authors << Author.create(name: "author_#{i}")
+      end
       (0...post_count).each do |i|
-        Post.create(display_index: i, weight: i % 2, posted_at: now - (i * epsilon))
+        Post.create(display_index: i, weight: i % 2, posted_at: now - (i * epsilon), author_id: authors[i % 2].id)
       end
     end
 
@@ -260,6 +272,54 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(records.map {|r| BigDecimal(r.posted_at.to_f.to_s).round(6) }).to eq [bd_now - (epsilon * 4), bd_now - (epsilon * 5)]
           next_cursor = page.end_cursor
           expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'posted_at' => records.last.posted_at.iso8601(6) }, { 'id' => records.last.id }]
+        end
+      end
+
+      context 'order by relation columns' do
+        let(:relation) { Post.select("posts.*, authors.name as author_name").joins(:author).order('author_name desc') }
+
+        it 'returns proper page' do
+          # page 1
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, aliases: {author_name: 'authors.name'})
+          expect(page.total).to eq post_count
+          records = page.records
+          expect(records).to be_a Array
+          expect(records.length).to eq 2
+          expect(records.pluck(:author_name)).to eq ['author_1', 'author_1']
+          next_cursor = page.end_cursor
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
+          # page 2
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, aliases: {author_name: 'authors.name'})
+          records = page.records
+          expect(records).to be_a Array
+          expect(records.length).to eq 2
+          expect(records.pluck(:author_name)).to eq ['author_1', 'author_0']
+          next_cursor = page.end_cursor
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
+        end
+      end
+
+      context 'order by relation columns' do
+        let(:relation) { Post.select("posts.*, authors.name as author_name").joins(:author).order(author_name: :desc) }
+
+        it 'returns proper page' do
+          # page 1
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, aliases: {author_name: 'authors.name'})
+          expect(page.total).to eq post_count
+          records = page.records
+          expect(records).to be_a Array
+          expect(records.length).to eq 2
+          expect(records.pluck(:author_name)).to eq ['author_1', 'author_1']
+          next_cursor = page.end_cursor
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
+          # page 2
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, aliases: {author_name: 'authors.name'})
+          records = page.records
+          expect(records).to be_a Array
+          expect(records.length).to eq 2
+          expect(records.pluck(:author_name)).to eq ['author_1', 'author_0']
+          next_cursor = page.end_cursor
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
         end
       end
     end
