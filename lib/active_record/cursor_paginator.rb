@@ -255,7 +255,6 @@ module ActiveRecord
       # @return [ActiveRecord::Relation]
       def build_filter_query(sorted_relation, op, current_field, prev_fields)
         relation = sorted_relation
-
         prev_fields.each do |col, val|
           col = @aliases[col] if @aliases.has_key? col
           relation = relation.where("#{col} = ?", val)
