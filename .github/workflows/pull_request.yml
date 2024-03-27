@@ -7,7 +7,7 @@ permissions:
   statuses: write
 
 jobs:
-  rspec:
+  check:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -97,6 +97,6 @@ jobs:
       - name: run rubocop
         uses: reviewdog/action-rubocop@v2
         with:
-          reporter: github-pr-check github-pr-review
+          reporter: github-pr-review
           skip_install: true
           use_bundler: true
