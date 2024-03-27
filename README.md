@@ -26,10 +26,20 @@ relation = Post.order(...)
 page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10)
 ```
 
+### aliases
+
+aliases are used in *where* conditions to filter items after cursor position
+
+```ruby
+relation = Post.select('posts.*, authors.name as author_name').joins(:author).order(author_name: :desc)
+page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10, aliases: { author_name: 'authors.name' })
+```
+
 ### Parameters of CursorPaginator
 - cursor: String - cursor to paginate
 - per_page: Integer - record count per page (default to 10)
 - direction: Symbol - direction to paginate. `:forward` (default) or `:backward`
+- aliases: Hash - specify matching of order keys and expressions in *where* conditions
 
 ### Response of CursorPaginator
 
