@@ -28,18 +28,23 @@ page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: 
 
 ### aliases
 
-aliases are used in *where* clause to filter items after cursor position
+This library supports column aliases as below, and extracts aliases from select values automatically.
 
 ```ruby
-relation = Post.select('posts.*, authors.name as author_name').joins(:author).order(author_name: :desc)
-page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10, aliases: { author_name: 'authors.name' })
+relation = Post.select('posts.*, authors.name author_name').joins(:author).order(author_name: :desc)
+page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10)
 ```
+
+Supported aliases are strings in the format below
+
+- `some expression [as|AS] *alias*`
+
+Other aliases such as symbols or arel functions are ignored.
 
 ### Parameters of CursorPaginator
 - cursor: String - cursor to paginate
 - per_page: Integer - record count per page (default to 10)
 - direction: Symbol - direction to paginate. `:forward` (default) or `:backward`
-- aliases: Hash - specify matching of order keys and expressions in *where* clause
 
 ### Response of CursorPaginator
 
@@ -67,6 +72,8 @@ Post.order(Arel::Nodes::NamedFunction.new('abs', [Post.arel_table[:display_index
 Post.order('abs(display_index)') # order by funtion
 Post.order('abs(display_index) asc') # order by function and direction
 ```
+
+Use aliases.
 
 ## Development
 

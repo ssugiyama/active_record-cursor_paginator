@@ -22,9 +22,7 @@ module ActiveRecord
     #   Cursor to paginate
     # @param direction [Symbol]
     #   :forward or :backward
-    # @param aliases [Hash]
-    #   aliases for relation's columns
-    def initialize(relation, per_page: nil, cursor: nil, direction: DIRECTION_FORWARD, aliases: {})
+    def initialize(relation, per_page: nil, cursor: nil, direction: DIRECTION_FORWARD)
       @is_forward_pagination = direction == DIRECTION_FORWARD
       relation = relation.order(:id) if relation.order_values.empty?
       relation = relation.reverse_order unless @is_forward_pagination
@@ -33,6 +31,7 @@ module ActiveRecord
       @relation = relation.reorder(@fields)
       @cursor = cursor
       @page_size = per_page
+      aliases = parse_aliases
       aliases[:id] ||= "#{relation.table_name}.id"
       @aliases = aliases.with_indifferent_access
       @memos = {}
@@ -262,6 +261,29 @@ module ActiveRecord
         col, val = current_field
         col = @aliases[col] if @aliases.has_key? col
         relation.where("#{col} #{op} ?", val)
+      end
+
+      # parse aliases from select values
+      #
+      # @return [Hash]
+      def parse_aliases
+        aliases = {}
+        @relation.select_values.each do |select_value|
+          next unless select_value.is_a? String
+
+          select_value.split(',').each do |expr|
+            expr.strip!
+            # "value [AS|as] alias" という形式に対応する
+            # value: spaceがあってもOK. 最小マッチングのため '?' をつける
+            # 'as' に後方参照させないため ?: をつける
+            match = expr.match(/^(.+?)\s+(?:[Aa][Ss]\s+)?(\S+)$/)
+            next if match.nil? || match.length < 3
+
+            key = trim_quote(match[2])
+            aliases[key] = match[1]
+          end
+        end
+        aliases
       end
 
       def trim_quote(field)
