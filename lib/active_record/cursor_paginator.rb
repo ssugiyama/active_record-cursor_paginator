@@ -50,7 +50,7 @@ module ActiveRecord
         when Arel::Nodes::Ascending, # .order(id: :asc), .order(:id)
              Arel::Nodes::Descending # .order(id: :desc)
           key = o.expr.is_a?(Arel::Attributes::Attribute) ? o.expr.name : trim_quote(o.expr)
-          dir = o.is_a?(Arel::Nodes::Descending) ? :desc : :asc
+          dir = o.direction
           { key => dir }
         when String # .order('id desc')
           o.split(',').map! do |s|
