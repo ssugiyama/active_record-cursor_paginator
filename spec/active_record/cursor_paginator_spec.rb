@@ -322,6 +322,45 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
         end
       end
+
+      context 'parse_aliases' do
+        let(:exprs) do
+          [
+            'count(*) as cnt',
+            'count(*) AS cnt',
+            'tables.column as tc',
+            'tables.column AS tc',
+            'tables.column      AS tc',
+            't.c tc',
+            'tables.column As tc',
+            'applications.service As as',
+            'applications.service as as',
+          ]
+        end
+        let(:expexted_aliases) do
+          [
+            ['cnt', 'count(*)'],
+            ['cnt', 'count(*)'],
+            ['tc', 'tables.column'],
+            ['tc', 'tables.column'],
+            ['tc', 'tables.column'],
+            ['tc', 't.c'],
+            ['tc', 'tables.column'],
+            ['as', 'applications.service'],
+            ['as', 'applications.service'],
+          ]
+        end
+        it 'parses aliases' do
+          expect(
+            exprs.map do |expr|
+              relation = Post.select('posts.*', expr).joins(:author).order(author_name: :desc)
+              page = ActiveRecord::CursorPaginator.new(relation, per_page: 2)
+              aliases = page.send(:parse_aliases)
+              aliases.to_a.flatten
+            end,
+          ).to eq expexted_aliases
+        end
+      end
     end
   end
 end
