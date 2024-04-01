@@ -275,7 +275,7 @@ module ActiveRecord
             expr.strip!
             # "value [AS|as] alias" という形式に対応する
             # value: spaceがあってもOK. 最小マッチングのため '?' をつける
-            # 'as' に後方参照させないため ?: をつける
+            # 'as' は使わないのでキャプチャしない
             match = expr.match(/^(?<value>.+?)\s+(?:[Aa][Ss]\s+)?(?<alias>\S+)$/)
             next if match.nil? || match.length < 3
 
