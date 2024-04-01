@@ -23,7 +23,7 @@ gem 'active_record-cursor_paginator'
 
 ```ruby
 relation = Post.order(...)
-page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10)
+page = ActiveRecord::CursorPaginator.new(relation, direction: :forward, cursor: '...', per_page: 10)
 ```
 
 ### aliases
@@ -32,7 +32,7 @@ This library supports column aliases as below, and extracts aliases from select 
 
 ```ruby
 relation = Post.select('posts.*, authors.name author_name').joins(:author).order(author_name: :desc)
-page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10)
+page = ActiveRecord::CursorPaginator.new(relation, direction: :forward, cursor: '...', per_page: 10)
 ```
 
 Supported aliases are strings in the format below
