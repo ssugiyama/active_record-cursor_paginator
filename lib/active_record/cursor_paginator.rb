@@ -20,8 +20,8 @@ module ActiveRecord
     #   Number of records to return.
     # @param cursor [String, nil]
     #   Cursor to paginate
-    # @param order [Array, Hash, Symbol, nil]
-    #   Column to order by. If none is provided, will default to ID column.
+    # @param direction [Symbol]
+    #   :forward or :backward
     def initialize(relation, per_page: nil, cursor: nil, direction: DIRECTION_FORWARD)
       @is_forward_pagination = direction == DIRECTION_FORWARD
       relation = relation.order(:id) if relation.order_values.empty?
@@ -31,7 +31,9 @@ module ActiveRecord
       @relation = relation.reorder(@fields)
       @cursor = cursor
       @page_size = per_page
-
+      aliases = parse_aliases
+      aliases[:id] ||= "#{relation.table_name}.id"
+      @aliases = aliases.with_indifferent_access
       @memos = {}
     end
 
@@ -44,10 +46,11 @@ module ActiveRecord
         case o
         when Arel::Attribute # .order(arel_table[:id])
           { o.name => :asc }
-        when Arel::Nodes::Ascending # .order(id: :asc), .order(:id)
-          { o.expr.name => :asc }
-        when Arel::Nodes::Descending # .order(id: :desc)
-          { o.expr.name => :desc }
+        when Arel::Nodes::Ascending, # .order(id: :asc), .order(:id)
+             Arel::Nodes::Descending # .order(id: :desc)
+          key = o.expr.is_a?(Arel::Attributes::Attribute) ? o.expr.name : trim_quote(o.expr)
+          dir = o.direction
+          { key => dir }
         when String # .order('id desc')
           o.split(',').map! do |s|
             s.strip!
@@ -186,8 +189,8 @@ module ActiveRecord
         relation = @relation
 
         @fields.each do |field|
-          field = field.keys.first
-          relation = relation.select(field) unless @relation.select_values.include?(field)
+          field = trim_quote(field.keys.first)
+          relation = relation.select(field) unless @relation.select_values.include?(field) || @aliases.keys.include?(field)
         end
 
         relation
@@ -210,6 +213,7 @@ module ActiveRecord
           next sorted_relation if @cursor.blank?
 
           cursor = decoded_cursor
+
           unless cursor.length == @fields.length && cursor.map {|field| field.keys.first } == @fields.map {|field| field.keys.first }
             raise InvalidCursorError, 'The given cursor is mismatched with current query'
           end
@@ -218,8 +222,7 @@ module ActiveRecord
           relation = nil
           cursor.zip(@fields).each do |cursor_field, field|
             direction = field.values.first
-            # range では 〜より大きいということが表現できないのでarel_tableを使う
-            op = (direction == :asc) ? :gt : :lt
+            op = (direction == :asc) ? '>' : '<'
             current_field = [field.keys.first, cursor_field.values.first]
             new_relation = build_filter_query(sorted_relation, op, current_field, prev_fields)
             relation = relation.nil? ? new_relation : relation.or(new_relation)
@@ -252,10 +255,39 @@ module ActiveRecord
       def build_filter_query(sorted_relation, op, current_field, prev_fields)
         relation = sorted_relation
         prev_fields.each do |col, val|
-          relation = relation.where(relation.arel_table[col].send(:eq, val))
+          col = @aliases[col] if @aliases.has_key? col
+          relation = relation.where("#{col} = ?", val)
         end
         col, val = current_field
-        relation.where(relation.arel_table[col].send(op, val))
+        col = @aliases[col] if @aliases.has_key? col
+        relation.where("#{col} #{op} ?", val)
+      end
+
+      # parse aliases from select values
+      #
+      # @return [Hash]
+      def parse_aliases
+        aliases = {}
+        @relation.select_values.each do |select_value|
+          next unless select_value.is_a? String
+
+          select_value.split(',').each do |expr|
+            expr.strip!
+            # "value [AS|as] alias" という形式に対応する
+            # value: spaceがあってもOK. 最小マッチングのため '?' をつける
+            # 'as' は使わないのでキャプチャしない
+            match = expr.match(/^(?<value>.+?)\s+(?:as\s+)?(?<alias>\S+)$/i)
+            next if match.nil? || match.length < 3
+
+            key = trim_quote(match[:alias])
+            aliases[key] = match[:value]
+          end
+        end
+        aliases
+      end
+
+      def trim_quote(field)
+        field.gsub(/^[`\"]/, '').gsub(/[`\"]$/, '')
       end
   end
 end

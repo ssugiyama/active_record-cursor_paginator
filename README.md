@@ -23,8 +23,23 @@ gem 'active_record-cursor_paginator'
 
 ```ruby
 relation = Post.order(...)
-page = ActiveRecord::CursorPaginator.new(relarion, direction: :forward, cursor: '...', per_page: 10)
+page = ActiveRecord::CursorPaginator.new(relation, direction: :forward, cursor: '...', per_page: 10)
 ```
+
+### aliases
+
+This library supports column aliases as below, and extracts aliases from select values automatically.
+
+```ruby
+relation = Post.select('posts.*, authors.name author_name').joins(:author).order(author_name: :desc)
+page = ActiveRecord::CursorPaginator.new(relation, direction: :forward, cursor: '...', per_page: 10)
+```
+
+Supported aliases are strings in the format below
+
+- `some expression [as|AS] *alias*`
+
+Other aliases such as symbols or arel functions are ignored.
 
 ### Parameters of CursorPaginator
 - cursor: String - cursor to paginate
@@ -57,6 +72,8 @@ Post.order(Arel::Nodes::NamedFunction.new('abs', [Post.arel_table[:display_index
 Post.order('abs(display_index)') # order by funtion
 Post.order('abs(display_index) asc') # order by function and direction
 ```
+
+Use aliases.
 
 ## Development
 
