@@ -62,7 +62,7 @@ jobs:
           # Run `bundle install` with cache when `true`
           bundler-cache: true
       - name: cache bundle gems
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: bundle-gems
         with:
