@@ -83,13 +83,13 @@ jobs:
         env:
           BUNDLE_PATH: "vendor/bundle"
       - name: RSpec Report(postgrs)
-        uses: SonicGarden/rspec-report-action@v4
+        uses: SonicGarden/rspec-report-action@v6
         with:
           token: "${{ github.token }}"
           json-path: tmp/rspec_postgres_results.json
         if: always()
       - name: RSpec Report(mysql)
-        uses: SonicGarden/rspec-report-action@v4
+        uses: SonicGarden/rspec-report-action@v6
         with:
           token: "${{ github.token }}"
           json-path: tmp/rspec_mysql_results.json
