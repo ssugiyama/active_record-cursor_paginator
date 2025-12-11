@@ -204,7 +204,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
       context 'order with string with function through aliases' do
         let(:relation) { Post.select('*, abs(display_index) as abs_display_index').order('abs_display_index asc') }
 
-        it 'raises error' do
+        it 'returns proper page with SQL functions through aliases' do
           page = ActiveRecord::CursorPaginator.new(relation, per_page: 2)
           expect(page.total).to eq post_count
           records = page.records
