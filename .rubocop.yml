@@ -8,7 +8,7 @@ inherit_mode:
 
 # 自動生成されるものはチェック対象から除外する
 AllCops:
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.0
   SuggestExtensions: false
   NewCops: enable
   Exclude:

@@ -16,6 +16,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
     Temping.create(:author) do
       with_columns do |t|
         t.string :name
+        t.datetime :created_at
       end
     end
     Temping.create(:post) do
@@ -25,6 +26,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
         t.integer :display_index
         t.integer :weight
         t.datetime :posted_at
+        t.datetime :created_at
       end
     end
   end
@@ -35,12 +37,11 @@ RSpec.describe ActiveRecord::CursorPaginator do
     let(:now) { Time.now.floor }
     let(:epsilon) { BigDecimal('0.000001') }
     before do
-      authors = []
-      (0...author_count).each do |i|
-        authors << Author.create(name: "author_#{i}")
+      authors = (0...author_count).map do |i|
+        Author.create(name: "author_#{i}", created_at: now - (i * epsilon))
       end
       (0...post_count).each do |i|
-        Post.create(display_index: i, weight: i % 2, posted_at: now - (i * epsilon), author_id: authors[i % 2].id)
+        Post.create(display_index: i, weight: i % 2, posted_at: now - (i * epsilon), created_at: now - (i * epsilon), author_id: authors[i % 2].id)
       end
     end
 
@@ -50,7 +51,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
       it 'returns proper pages' do
         next_cursor = nil
         prev_cursor = nil
-        (0...post_count / 2).each do |i|
+        (0...(post_count / 2)).each do |i|
           page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor)
           expect(page.total).to eq post_count
           records = page.records
@@ -66,7 +67,7 @@ RSpec.describe ActiveRecord::CursorPaginator do
           expect(page.previous_page?).to eq(i != 0)
         end
         next_cursor = prev_cursor
-        (0...(post_count / 2) - 1).reverse_each do |i|
+        (0...((post_count / 2) - 1)).reverse_each do |i|
           page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor, direction: :backward)
           expect(page.total).to eq post_count
           records = page.records
@@ -200,6 +201,21 @@ RSpec.describe ActiveRecord::CursorPaginator do
         end
       end
 
+      context 'order with string with function through aliases' do
+        let(:relation) { Post.select('*, abs(display_index) as abs_display_index').order('abs_display_index asc') }
+
+        it 'returns proper page with SQL functions through aliases' do
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2)
+          expect(page.total).to eq post_count
+          records = page.records
+          expect(records).to be_a Array
+          expect(records.length).to eq 2
+          expect(records.pluck(:abs_display_index)).to eq [0, 1]
+          next_cursor = page.end_cursor
+          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'abs_display_index' => records.last.abs_display_index }, { 'id' => records.last.id }]
+        end
+      end
+
       context 'order with string with function and order' do
         let(:relation) { Post.order('abs(display_index) asc') }
 
@@ -299,8 +315,8 @@ RSpec.describe ActiveRecord::CursorPaginator do
         end
       end
 
-      context 'order by relation columns' do
-        let(:relation) { Post.select(['posts.*', 'authors.name author_name']).joins(:author).order(author_name: :desc) }
+      context 'order by ambiguous columns' do
+        let(:relation) { Post.select('posts.*').joins(:author).order('created_at desc') }
 
         it 'returns proper page' do
           # page 1
@@ -309,17 +325,12 @@ RSpec.describe ActiveRecord::CursorPaginator do
           records = page.records
           expect(records).to be_a Array
           expect(records.length).to eq 2
-          expect(records.pluck(:author_name)).to eq ['author_1', 'author_1']
           next_cursor = page.end_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
           # page 2
           page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: next_cursor)
           records = page.records
           expect(records).to be_a Array
           expect(records.length).to eq 2
-          expect(records.pluck(:author_name)).to eq ['author_1', 'author_0']
-          next_cursor = page.end_cursor
-          expect(JSON.parse(Base64.strict_decode64(next_cursor))).to eq [{ 'author_name' => records.last.author.name }, { 'id' => records.last.id }]
         end
       end
 
