@@ -292,6 +292,14 @@ module ActiveRecord
         field.gsub(/^[`"]/, '').gsub(/[`"]$/, '')
       end
 
+      # Qualifies a field name with the table name unless it is already qualified or is a SQL function.
+      #
+      # If the field name contains a dot (.) or an opening parenthesis, it is assumed to be
+      # already qualified or a SQL function and is returned as-is. Otherwise, the field name
+      # is trimmed of quotes and prefixed with the table name.
+      #
+      # @param field [String] The field name to qualify.
+      # @return [String] The qualified field name or the original field if already qualified or a function.
       def qualify_field_if_needed(field)
         # qualified なフィールド名とSQL関数を簡易的に判定します
         if field.include?('.') || field.include?('(')
