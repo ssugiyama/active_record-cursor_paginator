@@ -482,7 +482,6 @@ RSpec.describe ActiveRecord::CursorPaginator do
         end
 
         it 'handles pagination across different enum values' do
-          cursors = []
           all_paginated_records = []
 
           # Paginate through all records
