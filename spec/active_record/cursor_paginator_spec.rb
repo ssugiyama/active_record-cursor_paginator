@@ -373,5 +373,138 @@ RSpec.describe ActiveRecord::CursorPaginator do
         end
       end
     end
+
+    context 'enum column support' do
+      before do
+        Temping.teardown
+        Temping.create(:article) do
+          with_columns do |t|
+            t.string :title
+            t.integer :status
+            t.datetime :published_at
+          end
+
+          enum status: { draft: 0, published: 1, archived: 2 }
+        end
+      end
+
+      let!(:article_count) { 6 }
+      let(:now) { Time.now.floor }
+
+      before do
+        # Create articles with different statuses
+        Article.create(title: 'Article 1', status: :published, published_at: now - 5)
+        Article.create(title: 'Article 2', status: :archived, published_at: now - 4)
+        Article.create(title: 'Article 3', status: :published, published_at: now - 3)
+        Article.create(title: 'Article 4', status: :draft, published_at: now - 2)
+        Article.create(title: 'Article 5', status: :published, published_at: now - 1)
+        Article.create(title: 'Article 6', status: :archived, published_at: now)
+      end
+
+      context 'ordering by enum column' do
+        let(:relation) { Article.order(status: :asc, published_at: :desc) }
+
+        it 'encodes enum values as integers in cursor' do
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2)
+          records = page.records
+          expect(records.length).to eq 2
+
+          # Verify cursor contains integer value for enum
+          cursor = page.end_cursor
+          decoded = JSON.parse(Base64.strict_decode64(cursor))
+          expect(decoded[0]['status']).to be_a(Integer)
+          expect(decoded[0]['status']).to eq(records.last.status_before_type_cast)
+        end
+
+        it 'paginates correctly with enum ordering' do
+          # First page (should have 1 draft)
+          page1 = ActiveRecord::CursorPaginator.new(relation, per_page: 2)
+          records1 = page1.records
+          expect(records1.length).to eq 2
+          expect(records1[0].status).to eq('draft')
+          expect(records1[0].title).to eq('Article 4')
+          expect(records1[1].status).to eq('published')
+          expect(records1[1].title).to eq('Article 5')
+
+          # Second page using cursor (should have 2 published)
+          page2 = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: page1.end_cursor)
+          records2 = page2.records
+          expect(records2.length).to eq 2
+          expect(records2[0].status).to eq('published')
+          expect(records2[0].title).to eq('Article 3')
+          expect(records2[1].status).to eq('published')
+          expect(records2[1].title).to eq('Article 1')
+
+          # Third page using cursor (should have 2 archived)
+          page3 = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: page2.end_cursor)
+          records3 = page3.records
+          expect(records3.length).to eq 2
+          expect(records3[0].status).to eq('archived')
+          expect(records3[0].title).to eq('Article 6')
+          expect(records3[1].status).to eq('archived')
+          expect(records3[1].title).to eq('Article 2')
+
+          # Verify no more pages
+          expect(page3.next_page?).to eq false
+        end
+
+        it 'paginates correctly with enum ordering desc' do
+          relation_desc = Article.order(status: :desc, published_at: :desc)
+
+          # First page (should have 2 archived)
+          page1 = ActiveRecord::CursorPaginator.new(relation_desc, per_page: 2)
+          records1 = page1.records
+          expect(records1.length).to eq 2
+          expect(records1[0].status).to eq('archived')
+          expect(records1[0].title).to eq('Article 6')
+          expect(records1[1].status).to eq('archived')
+          expect(records1[1].title).to eq('Article 2')
+
+          # Second page (should have 3 published)
+          page2 = ActiveRecord::CursorPaginator.new(relation_desc, per_page: 2, cursor: page1.end_cursor)
+          records2 = page2.records
+          expect(records2.length).to eq 2
+          expect(records2[0].status).to eq('published')
+          expect(records2[0].title).to eq('Article 5')
+          expect(records2[1].status).to eq('published')
+          expect(records2[1].title).to eq('Article 3')
+
+          # Third page (should have 1 published and 1 draft)
+          page3 = ActiveRecord::CursorPaginator.new(relation_desc, per_page: 2, cursor: page2.end_cursor)
+          records3 = page3.records
+          expect(records3.length).to eq 2
+          expect(records3[0].status).to eq('published')
+          expect(records3[0].title).to eq('Article 1')
+          expect(records3[1].status).to eq('draft')
+          expect(records3[1].title).to eq('Article 4')
+
+          expect(page3.next_page?).to eq false
+        end
+
+        it 'handles pagination across different enum values' do
+          cursors = []
+          all_paginated_records = []
+
+          # Paginate through all records
+          cursor = nil
+          3.times do
+            page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: cursor)
+            all_paginated_records.concat(page.records)
+            cursor = page.end_cursor
+          end
+
+          expect(all_paginated_records.length).to eq article_count
+          # Verify order: draft -> published -> archived, with published_at desc within each status
+          all_paginated_records.each_cons(2) do |prev, current|
+            prev_status_value = Article.statuses[prev.status]
+            current_status_value = Article.statuses[current.status]
+            expect(prev_status_value).to be <= current_status_value
+            if prev_status_value == current_status_value
+              expect(prev.published_at).to be >= current.published_at
+            end
+          end
+        end
+      end
+    end
   end
 end
