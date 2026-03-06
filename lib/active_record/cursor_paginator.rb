@@ -160,10 +160,23 @@ module ActiveRecord
       # value from this other field as well as the records ID to resolve the order
       # of duplicates in the non-ID field.
       #
+      # For enum columns, we store the raw integer value instead of the string
+      # representation to ensure proper SQL comparison in WHERE clauses.
+      #
       # @param record [ActiveRecord] Model instance for which we want the cursor
       # @return [String]
       def cursor_for_record(record)
-        unencoded_cursor = @fields.map {|field| { field.keys.first => record[field.keys.first] } }
+        unencoded_cursor = @fields.map do |field|
+          field_name = field.keys.first
+          value = if record.class.defined_enums.key?(field_name.to_s)
+                    # For enum columns, get the raw integer value from the database
+                    record.read_attribute_before_type_cast(field_name)
+                  else
+                    # For regular columns, get the typed value
+                    record[field_name]
+                  end
+          { field_name => value }
+        end
         Base64.strict_encode64(unencoded_cursor.to_json)
       end
 
