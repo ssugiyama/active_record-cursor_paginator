@@ -1,3 +1,7 @@
+## [0.3.1] - 2026-03-06
+
+- Add support for Rails enum columns
+
 ## [0.3.0] - 2025-12-10
 
 - Fix ambiguous column error
