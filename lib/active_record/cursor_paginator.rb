@@ -268,14 +268,25 @@ module ActiveRecord
       def build_filter_query(sorted_relation, op, current_field, prev_fields)
         relation = sorted_relation
         prev_fields.each do |col, val|
+          col_key = col
           col = @aliases[col] if @aliases.has_key? col
           col = qualify_field_if_needed(col)
-          relation = relation.where("#{col} = ?", val)
+          relation = relation.where("#{col} = ?", cast_cursor_value(col_key, val))
         end
         col, val = current_field
+        col_key = col
         col = @aliases[col] if @aliases.has_key? col
         col = qualify_field_if_needed(col)
-        relation.where("#{col} #{op} ?", val)
+        relation.where("#{col} #{op} ?", cast_cursor_value(col_key, val))
+      end
+
+      def cast_cursor_value(col_name, val)
+        return val unless val.is_a?(String)
+        column = @relation.klass.columns_hash[col_name.to_s]
+        return val unless column&.type == :datetime
+        Time.parse(val)
+      rescue ArgumentError
+        val
       end
 
       # parse aliases from select values
