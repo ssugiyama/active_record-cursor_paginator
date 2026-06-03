@@ -288,9 +288,9 @@ module ActiveRecord
         resolved_col = (resolved_expr || col_name.to_s).split('.').last
         type = @relation.klass.type_for_attribute(resolved_col)
 
-        if resolved_expr&.match?(/\A\w+\.\w+\z/) && %i[datetime time timestamp].include?(type.type)
-          warn_join_column_cast(col_name, resolved_expr)
-        end
+        return val unless %i[datetime time timestamp].include?(type.type)
+
+        warn_join_column_cast(col_name, resolved_expr) if resolved_expr&.match?(/\A\w+\.\w+\z/)
 
         type.cast(val)
       end
