@@ -169,7 +169,7 @@ module ActiveRecord
       def cursor_for_record(record)
         unencoded_cursor = @fields.map do |field|
           field_name = field.keys.first
-          value = if record.class.defined_enums.key?(field_name.to_s)
+          value = if record.class.defined_enums.has_key?(field_name.to_s)
                     # For enum columns, get the raw integer value from the database
                     record.read_attribute_before_type_cast(field_name)
                   else
@@ -283,6 +283,7 @@ module ActiveRecord
 
       def cast_cursor_value(col_name, val)
         return val unless val.is_a?(String)
+
         resolved_expr = @aliases[col_name.to_s]
         resolved_col = (resolved_expr || col_name.to_s).split('.').last
         type = @relation.klass.type_for_attribute(resolved_col)
@@ -297,11 +298,12 @@ module ActiveRecord
       def warn_join_column_cast(alias_name, expression)
         @_warned_join_casts ||= Set.new
         return if @_warned_join_casts.include?(alias_name)
+
         @_warned_join_casts << alias_name
 
         msg = "[CursorPaginator] Cursor column '#{alias_name}' resolves to '#{expression}' " \
               "(join column). Type is inferred from #{@relation.klass.name} and may be " \
-              "inaccurate. Timezone-aware datetime cursors on joined tables may not work correctly."
+              'inaccurate. Timezone-aware datetime cursors on joined tables may not work correctly.'
         logger = ActiveRecord::Base.logger
         logger ? logger.warn(msg) : Kernel.warn(msg)
       end
