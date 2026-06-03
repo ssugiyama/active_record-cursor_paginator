@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'active_record'
+require 'set'
 require_relative 'cursor_paginator/version'
 
 module ActiveRecord
@@ -282,11 +283,27 @@ module ActiveRecord
 
       def cast_cursor_value(col_name, val)
         return val unless val.is_a?(String)
-        column = @relation.klass.columns_hash[col_name.to_s]
-        return val unless column&.type == :datetime
-        Time.parse(val)
-      rescue ArgumentError
-        val
+        resolved_expr = @aliases[col_name.to_s]
+        resolved_col = (resolved_expr || col_name.to_s).split('.').last
+        type = @relation.klass.type_for_attribute(resolved_col)
+
+        if resolved_expr&.match?(/\A\w+\.\w+\z/) && %i[datetime time timestamp].include?(type.type)
+          warn_join_column_cast(col_name, resolved_expr)
+        end
+
+        type.cast(val)
+      end
+
+      def warn_join_column_cast(alias_name, expression)
+        @_warned_join_casts ||= Set.new
+        return if @_warned_join_casts.include?(alias_name)
+        @_warned_join_casts << alias_name
+
+        msg = "[CursorPaginator] Cursor column '#{alias_name}' resolves to '#{expression}' " \
+              "(join column). Type is inferred from #{@relation.klass.name} and may be " \
+              "inaccurate. Timezone-aware datetime cursors on joined tables may not work correctly."
+        logger = ActiveRecord::Base.logger
+        logger ? logger.warn(msg) : Kernel.warn(msg)
       end
 
       # parse aliases from select values
