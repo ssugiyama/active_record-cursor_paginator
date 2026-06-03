@@ -291,6 +291,25 @@ RSpec.describe ActiveRecord::CursorPaginator do
         end
       end
 
+      context 'order by datetime with non-UTC timezone offset in cursor' do
+        let(:relation) { Post.order(posted_at: :desc) }
+
+        it 'correctly paginates when cursor contains a non-UTC timezone offset' do
+          all_records = relation.to_a
+          ref = all_records[1]
+
+          # Encode the same instant as ref.posted_at but with +09:00 (JST) offset,
+          # regardless of the system timezone. Without the fix the DB ignores the offset
+          # and shifts the boundary by 9 hours, returning the wrong page.
+          jst_wall = ref.posted_at.utc + (9 * 3600)
+          jst_string = jst_wall.strftime('%Y-%m-%dT%H:%M:%S.%6N+09:00')
+          cursor = Base64.strict_encode64([{ 'posted_at' => jst_string }, { 'id' => ref.id }].to_json)
+
+          page = ActiveRecord::CursorPaginator.new(relation, per_page: 2, cursor: cursor)
+          expect(page.records.map(&:id)).to eq(all_records[2..3].map(&:id))
+        end
+      end
+
       context 'order by relation columns' do
         let(:relation) { Post.select('posts.*, authors.name as author_name').joins(:author).order('author_name desc') }
 
@@ -370,6 +389,64 @@ RSpec.describe ActiveRecord::CursorPaginator do
               aliases.to_a.flatten
             end,
           ).to eq expexted_aliases
+        end
+      end
+    end
+
+    context '#cast_cursor_value' do
+      let(:relation) { Post.order(posted_at: :desc) }
+      subject(:paginator) { described_class.new(relation, per_page: 2) }
+
+      it 'converts a timezone-aware datetime string to a Time object' do
+        result = paginator.send(:cast_cursor_value, 'posted_at', '2024-01-01T12:00:00.000000+09:00')
+        expect(result).to be_a(Time)
+        expect(result.utc).to eq(Time.utc(2024, 1, 1, 3, 0, 0))
+      end
+
+      it 'leaves non-string values unchanged' do
+        expect(paginator.send(:cast_cursor_value, 'posted_at', 42)).to eq(42)
+      end
+
+      it 'leaves strings for non-datetime columns unchanged' do
+        expect(paginator.send(:cast_cursor_value, 'display_index', 'foo')).to eq('foo')
+      end
+
+      context 'join column alias warning' do
+        before { allow(ActiveRecord::Base).to receive(:logger).and_return(nil) }
+
+        context 'when alias resolves to a datetime join column' do
+          let(:relation) { Post.select('posts.*, authors.created_at as author_created_at').joins(:author).order('author_created_at desc') }
+          subject(:paginator) { described_class.new(relation, per_page: 2) }
+
+          it 'emits a warning to stderr' do
+            expect {
+              paginator.send(:cast_cursor_value, 'author_created_at', '2024-01-01T12:00:00.000000+09:00')
+            }.to output(/\[CursorPaginator\].*author_created_at.*authors\.created_at/).to_stderr
+          end
+
+          it 'emits the warning only once per alias per paginator instance' do
+            expect(Kernel).to receive(:warn).once
+            2.times { paginator.send(:cast_cursor_value, 'author_created_at', '2024-01-01T12:00:00.000000+09:00') }
+          end
+        end
+
+        context 'when alias resolves to a non-datetime join column' do
+          let(:relation) { Post.select('posts.*, authors.name as author_name').joins(:author).order('author_name desc') }
+          subject(:paginator) { described_class.new(relation, per_page: 2) }
+
+          it 'does not emit a warning' do
+            expect {
+              paginator.send(:cast_cursor_value, 'author_name', 'author_1')
+            }.not_to output.to_stderr
+          end
+        end
+
+        context 'when column is a direct (non-alias) root model column' do
+          it 'does not emit a warning' do
+            expect {
+              paginator.send(:cast_cursor_value, 'posted_at', '2024-01-01T12:00:00.000000+09:00')
+            }.not_to output.to_stderr
+          end
         end
       end
     end

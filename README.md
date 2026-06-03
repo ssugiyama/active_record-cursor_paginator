@@ -65,6 +65,18 @@ ActiveSupport::JSON::Encoding.time_precision = 6
 
 ## Limitation
 
+### Datetime cursor values on join table columns
+
+When ordering by a datetime column from a joined table via an alias (e.g. `authors.created_at as author_created_at`), the column type is inferred from the root model. If the joined table's column type differs from the root model's column with the same name, timezone conversion in cursor values may be inaccurate.
+
+A warning is logged when this situation is detected:
+
+```
+[CursorPaginator] Cursor column 'author_created_at' resolves to 'authors.created_at'
+(join column). Type is inferred from Post and may be inaccurate.
+Timezone-aware datetime cursors on joined tables may not work correctly.
+```
+
 This library does not support the following order expressions
 
 ```ruby
